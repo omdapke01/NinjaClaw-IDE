@@ -1,0 +1,91 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --background: 220 13% 18%;
+    --foreground: 220 13% 91%;
+    --card: 220 13% 15%;
+    --card-foreground: 220 13% 91%;
+    --primary: 210 78% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 13% 22%;
+    --secondary-foreground: 220 13% 80%;
+    --muted: 220 13% 22%;
+    --muted-foreground: 220 13% 55%;
+    --accent: 265 70% 60%;
+    --accent-foreground: 0 0% 100%;
+    --border: 220 13% 26%;
+    --ide-sidebar: 220 13% 12%;
+    --ide-sidebar-foreground: 220 13% 75%;
+    --ide-sidebar-hover: 220 13% 18%;
+    --ide-panel: 220 13% 10%;
+    --ide-panel-foreground: 220 13% 70%;
+    --ide-tab: 220 13% 15%;
+    --ide-tab-active: 220 13% 18%;
+    --ide-tab-foreground: 220 13% 65%;
+    --ide-tab-active-foreground: 220 13% 95%;
+    --ide-border: 220 13% 20%;
+    --ide-editor: 220 13% 14%;
+    --ide-chat-user: 210 78% 25%;
+    --ide-chat-ai: 220 13% 20%;
+    --ide-success: 142 71% 45%;
+    --ide-warning: 38 92% 50%;
+    --ide-info: 210 78% 56%;
+  }
+
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    margin: 0;
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+
+  code,
+  pre,
+  .font-mono {
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(220 13% 12%);
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(220 13% 30%);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(220 13% 40%);
+}
+
+::selection {
+  background: hsl(210 78% 56% / 0.3);
+}
