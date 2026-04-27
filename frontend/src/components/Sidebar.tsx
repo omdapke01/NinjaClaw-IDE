@@ -8,8 +8,10 @@ import {
   Folder,
   FolderOpen,
   Image,
+  Pencil,
   Plus,
   Settings,
+  FolderPlus,
   Trash2
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -25,7 +27,10 @@ type SidebarProps = {
   onChooseFile: (path: string) => Promise<void> | void;
   onCreateProject: () => Promise<void> | void;
   onCreateFile: () => Promise<void> | void;
+  onCreateFolder: () => Promise<void> | void;
   onDeleteProject: (projectId: string) => Promise<void> | void;
+  onRenameEntry: (path: string, type: "file" | "folder") => Promise<void> | void;
+  onDeleteEntry: (path: string, type: "file" | "folder") => Promise<void> | void;
 };
 
 export function Sidebar(props: SidebarProps) {
@@ -82,12 +87,21 @@ export function Sidebar(props: SidebarProps) {
 
       <div className="flex items-center justify-between px-3 py-3">
         <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Files</p>
-        <button
-          className="rounded-md border border-ide-border bg-secondary px-2 py-1 text-xs text-secondary-foreground transition hover:bg-ide-sidebar-hover"
-          onClick={props.onCreateFile}
-        >
-          New File
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            className="rounded-md border border-ide-border bg-secondary px-2 py-1 text-xs text-secondary-foreground transition hover:bg-ide-sidebar-hover"
+            onClick={props.onCreateFolder}
+            title="New folder"
+          >
+            <FolderPlus size={12} />
+          </button>
+          <button
+            className="rounded-md border border-ide-border bg-secondary px-2 py-1 text-xs text-secondary-foreground transition hover:bg-ide-sidebar-hover"
+            onClick={props.onCreateFile}
+          >
+            New File
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-auto px-2 pb-3">
@@ -101,6 +115,8 @@ export function Sidebar(props: SidebarProps) {
             activeFile={props.activeFile}
             onToggle={toggle}
             onChooseFile={props.onChooseFile}
+            onRenameEntry={props.onRenameEntry}
+            onDeleteEntry={props.onDeleteEntry}
           />
         ))}
       </div>
@@ -115,9 +131,11 @@ type TreeNodeProps = {
   activeFile: string;
   onToggle: (path: string) => void;
   onChooseFile: (path: string) => void;
+  onRenameEntry: (path: string, type: "file" | "folder") => void;
+  onDeleteEntry: (path: string, type: "file" | "folder") => void;
 };
 
-function TreeNode({ node, depth, expanded, activeFile, onToggle, onChooseFile }: TreeNodeProps) {
+function TreeNode({ node, depth, expanded, activeFile, onToggle, onChooseFile, onRenameEntry, onDeleteEntry }: TreeNodeProps) {
   const paddingLeft = 10 + depth * 14;
 
   if (node.type === "folder") {
@@ -126,13 +144,35 @@ function TreeNode({ node, depth, expanded, activeFile, onToggle, onChooseFile }:
     return (
       <div>
         <button
-          className="flex w-full items-center gap-1.5 rounded-sm px-2 py-1 text-sm text-ide-sidebar-foreground transition hover:bg-ide-sidebar-hover"
+          className="group flex w-full items-center justify-between gap-1.5 rounded-sm px-2 py-1 text-sm text-ide-sidebar-foreground transition hover:bg-ide-sidebar-hover"
           onClick={() => onToggle(node.path)}
           style={{ paddingLeft }}
         >
-          {isOpen ? <ChevronDown size={14} className="text-muted-foreground" /> : <ChevronRight size={14} className="text-muted-foreground" />}
-          {isOpen ? <FolderOpen size={14} className="text-ide-warning" /> : <Folder size={14} className="text-ide-warning" />}
-          <span>{node.name}</span>
+          <span className="flex items-center gap-1.5">
+            {isOpen ? <ChevronDown size={14} className="text-muted-foreground" /> : <ChevronRight size={14} className="text-muted-foreground" />}
+            {isOpen ? <FolderOpen size={14} className="text-ide-warning" /> : <Folder size={14} className="text-ide-warning" />}
+            <span>{node.name}</span>
+          </span>
+          <span className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+            <span
+              onClick={(event) => {
+                event.stopPropagation();
+                onRenameEntry(node.path, "folder");
+              }}
+              className="rounded p-1 hover:bg-secondary"
+            >
+              <Pencil size={12} />
+            </span>
+            <span
+              onClick={(event) => {
+                event.stopPropagation();
+                onDeleteEntry(node.path, "folder");
+              }}
+              className="rounded p-1 hover:bg-secondary"
+            >
+              <Trash2 size={12} />
+            </span>
+          </span>
         </button>
         {isOpen
           ? node.children?.map((child) => (
@@ -144,6 +184,8 @@ function TreeNode({ node, depth, expanded, activeFile, onToggle, onChooseFile }:
                 activeFile={activeFile}
                 onToggle={onToggle}
                 onChooseFile={onChooseFile}
+                onRenameEntry={onRenameEntry}
+                onDeleteEntry={onDeleteEntry}
               />
             ))
           : null}
@@ -153,14 +195,36 @@ function TreeNode({ node, depth, expanded, activeFile, onToggle, onChooseFile }:
 
   return (
     <button
-      className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition ${
+      className={`group flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm transition ${
         activeFile === node.path ? "bg-ide-sidebar-hover text-foreground" : "text-ide-sidebar-foreground hover:bg-ide-sidebar-hover"
       }`}
       onClick={() => onChooseFile(node.path)}
       style={{ paddingLeft }}
     >
-      {getFileIcon(node.name)}
-      <span>{node.name}</span>
+      <span className="flex min-w-0 items-center gap-2">
+        {getFileIcon(node.name)}
+        <span className="truncate">{node.name}</span>
+      </span>
+      <span className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <span
+          onClick={(event) => {
+            event.stopPropagation();
+            onRenameEntry(node.path, "file");
+          }}
+          className="rounded p-1 hover:bg-secondary"
+        >
+          <Pencil size={12} />
+        </span>
+        <span
+          onClick={(event) => {
+            event.stopPropagation();
+            onDeleteEntry(node.path, "file");
+          }}
+          className="rounded p-1 hover:bg-secondary"
+        >
+          <Trash2 size={12} />
+        </span>
+      </span>
     </button>
   );
 }

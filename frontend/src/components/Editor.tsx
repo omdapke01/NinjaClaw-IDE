@@ -1,13 +1,15 @@
 import MonacoEditor, { type Monaco } from "@monaco-editor/react";
 import { Play, Save } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { getLanguageMeta } from "../lib";
-import type { LanguageOption } from "../types";
+import type { EditorCursorContext, LanguageOption } from "../types";
 
 type EditorProps = {
   filePath: string;
   language: LanguageOption;
   value: string;
   onChange: (value: string) => void;
+  onCursorContextChange: (context: EditorCursorContext) => void;
   onSave: () => Promise<void> | void;
   onRun: () => Promise<void> | void;
   onLanguageChange: (language: LanguageOption) => Promise<void> | void;
@@ -16,6 +18,8 @@ type EditorProps = {
 const languageOptions: LanguageOption[] = ["javascript", "python", "cpp", "java"];
 
 export function Editor(props: EditorProps) {
+  const editorRef = useRef<any>(null);
+
   function handleBeforeMount(monaco: Monaco) {
     monaco.editor.defineTheme("ninjaclaw-dark", {
       base: "vs-dark",
@@ -34,20 +38,52 @@ export function Editor(props: EditorProps) {
       }
     });
 
-    monaco.languages.registerCompletionItemProvider("python", {
-      provideCompletionItems() {
-        return {
-          suggestions: [
-            {
-              label: "ifmain",
-              kind: monaco.languages.CompletionItemKind.Snippet,
-              insertText: "if __name__ == '__main__':\n    main()",
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
-            }
-          ]
-        };
-      }
+    for (const providerLanguage of ["javascript", "python", "cpp", "java"]) {
+      monaco.languages.registerCompletionItemProvider(providerLanguage, {
+        provideCompletionItems() {
+          return {
+            suggestions: providerLanguage === "python"
+              ? [
+                  {
+                    label: "ifmain",
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: "if __name__ == '__main__':\n    main()",
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+                  }
+                ]
+              : []
+          };
+        }
+      });
+    }
+  }
+
+  function handleMount(editor: any, monaco: Monaco) {
+    editorRef.current = editor;
+
+    const pushCursorContext = () => {
+      const model = editor.getModel();
+      const position = editor.getPosition();
+      if (!model || !position) return;
+
+      const offset = model.getOffsetAt(position);
+      const fullText = model.getValue();
+      props.onCursorContextChange({
+        lineNumber: position.lineNumber,
+        column: position.column,
+        prefix: fullText.slice(Math.max(0, offset - 1200), offset),
+        suffix: fullText.slice(offset, Math.min(fullText.length, offset + 400))
+      });
+    };
+
+    editor.onDidChangeCursorPosition(() => {
+      pushCursorContext();
     });
+
+    editor.onDidChangeModelContent(() => {
+      pushCursorContext();
+    });
+    pushCursorContext();
   }
 
   return (
@@ -83,6 +119,7 @@ export function Editor(props: EditorProps) {
       <div className="h-full min-h-0 flex-1">
         <MonacoEditor
           beforeMount={handleBeforeMount}
+          onMount={handleMount}
           height="100%"
           theme="ninjaclaw-dark"
           language={props.language === "cpp" ? "cpp" : props.language}

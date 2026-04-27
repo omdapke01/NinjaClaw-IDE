@@ -47,6 +47,7 @@ export function buildTree(files: FlatFile[]): FileNode[] {
     segments.forEach((segment, index) => {
       currentPath = currentPath ? `${currentPath}/${segment}` : segment;
       const isLast = index === segments.length - 1;
+      const explicitFolder = isLast && file.type === "folder";
       let existing = pointer.find((node) => node.name === segment);
 
       if (!existing) {
@@ -54,13 +55,13 @@ export function buildTree(files: FlatFile[]): FileNode[] {
           id: currentPath,
           name: segment,
           path: currentPath,
-          type: isLast ? "file" : "folder",
-          children: isLast ? undefined : []
+          type: isLast && !explicitFolder ? "file" : "folder",
+          children: isLast && !explicitFolder ? undefined : []
         };
         pointer.push(existing);
       }
 
-      if (!isLast) {
+      if (!isLast || explicitFolder) {
         existing.children ??= [];
         pointer = existing.children;
       }
@@ -82,4 +83,3 @@ function sortNodes(a: FileNode, b: FileNode) {
   if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
   return a.name.localeCompare(b.name);
 }
-

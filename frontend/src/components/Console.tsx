@@ -1,16 +1,25 @@
-import { AlertCircle, CheckCircle, ChevronDown, ChevronUp, Info, Terminal, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { AlertCircle, CheckCircle, ChevronDown, ChevronUp, GripHorizontal, Info, Square, Terminal, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import type { ConsoleTab } from "../types";
 
 type ConsoleProps = {
-  logs: string[];
+  terminalLogs: string[];
+  outputLogs: string[];
+  activeTab: ConsoleTab;
   isOpen: boolean;
   onToggle: () => void;
-  onClear: () => void;
+  onClear: (tab: ConsoleTab) => void;
   onCommand: (command: string) => Promise<void> | void;
+  height: number;
+  onResize: (height: number) => void;
+  hasActiveSession: boolean;
+  onStop: () => Promise<void> | void;
+  onTabChange: (tab: ConsoleTab) => void;
 };
 
-export function Console({ logs, isOpen, onToggle, onClear, onCommand }: ConsoleProps) {
+export function Console({ terminalLogs, outputLogs, activeTab, isOpen, onToggle, onClear, onCommand, height, onResize, hasActiveSession, onStop, onTabChange }: ConsoleProps) {
   const [command, setCommand] = useState("");
+  const [dragging, setDragging] = useState(false);
 
   async function handleSubmit() {
     const trimmed = command.trim();
@@ -19,16 +28,63 @@ export function Console({ logs, isOpen, onToggle, onClear, onCommand }: ConsoleP
     await onCommand(trimmed);
   }
 
+  useEffect(() => {
+    if (!dragging) return undefined;
+
+    function handleMove(event: MouseEvent) {
+      const nextHeight = Math.min(520, Math.max(140, window.innerHeight - event.clientY - 24));
+      onResize(nextHeight);
+    }
+
+    function handleUp() {
+      setDragging(false);
+    }
+
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+    };
+  }, [dragging, onResize]);
+
   return (
-    <div className={`flex flex-col border-t border-ide-border bg-ide-panel transition-all ${isOpen ? "h-48" : "h-9"}`}>
+    <div className="flex flex-col border-t border-ide-border bg-ide-panel transition-all" style={{ height: isOpen ? height : 36 }}>
+      {isOpen ? (
+        <button
+          className="flex h-2 cursor-row-resize items-center justify-center border-b border-ide-border/60 text-muted-foreground hover:bg-secondary/40"
+          onMouseDown={() => setDragging(true)}
+          title="Resize console"
+        >
+          <GripHorizontal className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
       <div className="flex shrink-0 items-center justify-between border-b border-ide-border px-3 py-2">
         <div className="flex items-center gap-2">
           <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Console</span>
-          <span className="rounded bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground">{logs.length}</span>
+          <button
+            onClick={() => onTabChange("terminal")}
+            className={`rounded px-1.5 py-0.5 text-xs transition-colors ${activeTab === "terminal" ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/60"}`}
+          >
+            Terminal {terminalLogs.length > 0 ? <span>{terminalLogs.length}</span> : null}
+          </button>
+          <button
+            onClick={() => onTabChange("output")}
+            className={`rounded px-1.5 py-0.5 text-xs transition-colors ${activeTab === "output" ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/60"}`}
+          >
+            Output {outputLogs.length > 0 ? <span>{outputLogs.length}</span> : null}
+          </button>
+          {hasActiveSession ? <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.2em] text-emerald-300">Running</span> : null}
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={onClear} className="rounded p-1 text-muted-foreground transition-colors hover:bg-secondary">
+          {hasActiveSession ? (
+            <button onClick={onStop} className="rounded p-1 text-rose-300 transition-colors hover:bg-secondary" title="Stop running program">
+              <Square className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+          <button onClick={() => onClear(activeTab)} className="rounded p-1 text-muted-foreground transition-colors hover:bg-secondary">
             <Trash2 className="h-3.5 w-3.5" />
           </button>
           <button onClick={onToggle} className="rounded p-1 text-muted-foreground transition-colors hover:bg-secondary">
@@ -51,14 +107,14 @@ export function Console({ logs, isOpen, onToggle, onClear, onCommand }: ConsoleP
                     void handleSubmit();
                   }
                 }}
-                placeholder="Try: help, ls, code src/index.js, run hello.cpp"
+                placeholder={hasActiveSession ? "Program is waiting for input..." : "Try: help, ls, code src/index.js, run hello.cpp"}
                 className="flex-1 bg-transparent font-mono text-xs text-foreground outline-none placeholder:text-muted-foreground"
               />
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto font-mono text-xs">
-            {logs.map((log, index) => (
+            {(activeTab === "terminal" ? terminalLogs : outputLogs).map((log, index) => (
               <div key={`${log}-${index}`} className="flex items-start gap-2 border-b border-ide-border/30 px-3 py-1 hover:bg-ide-sidebar-hover/30">
                 {getLogIcon(log)}
                 <span className="shrink-0 text-muted-foreground">{formatTime(index)}</span>

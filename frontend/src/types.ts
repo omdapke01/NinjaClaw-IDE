@@ -11,6 +11,7 @@ export type FileNode = {
 export type FlatFile = {
   name: string;
   path: string;
+  type?: "file" | "folder";
 };
 
 export type Project = {
@@ -32,3 +33,22 @@ export type ChatMessage = {
   content: string;
 };
 
+export type AiAction = "explain" | "fix" | "continue" | "generate";
+
+export type EditorCursorContext = {
+  lineNumber: number;
+  column: number;
+  prefix: string;
+  suffix: string;
+};
+
+export type InlineSuggestion = {
+  text: string;
+  lineNumber: number;
+  column: number;
+  language: LanguageOption;
+};
+
+export type CodeApplyAction = "replace" | "append" | "new-file";
+
+export type ConsoleTab = "terminal" | "output";

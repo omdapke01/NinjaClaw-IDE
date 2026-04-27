@@ -3,4 +3,9 @@ dist
 .env
 backend/data/*.json
 backend/data/projects
-
+.runlogs
+.vercel
+backend/.tmp
+runner-workspaces
+test.cpp
+test.exe

@@ -64,8 +64,26 @@ export const api = {
       headers: headers(token),
       body: JSON.stringify(body)
     }),
+  createFolder: (token: string, projectId: string, body: { path: string }) =>
+    request<{ ok: boolean }>(`/api/projects/${projectId}/folders`, {
+      method: "POST",
+      headers: headers(token),
+      body: JSON.stringify(body)
+    }),
+  renameEntry: (token: string, projectId: string, body: { oldPath: string; newPath: string; type: "file" | "folder" }) =>
+    request<{ ok: boolean; path: string }>(`/api/projects/${projectId}/entries/rename`, {
+      method: "PATCH",
+      headers: headers(token),
+      body: JSON.stringify(body)
+    }),
+  deleteEntry: (token: string, projectId: string, body: { path: string; type: "file" | "folder" }) =>
+    request<{ ok: boolean }>(`/api/projects/${projectId}/entries/delete`, {
+      method: "POST",
+      headers: headers(token),
+      body: JSON.stringify(body)
+    }),
   runFile: (token: string, projectId: string, body: { path: string }) =>
-    request<{ ok: boolean; code: number; output: string; runtime: string; ranAt: string }>(`/api/projects/${projectId}/run`, {
+    request<{ ok: boolean; code: number | null; output: string; runtime: string; ranAt: string; sessionId: string | null; status: string }>(`/api/projects/${projectId}/run`, {
       method: "POST",
       headers: headers(token),
       body: JSON.stringify(body)
@@ -75,5 +93,55 @@ export const api = {
       method: "POST",
       headers: headers(token),
       body: JSON.stringify(body)
+    }),
+  terminalInput: (token: string, projectId: string, body: { sessionId: string; input: string }) =>
+    request<{ ok: boolean; output: string; status: string; code: number | null }>(`/api/projects/${projectId}/terminal/input`, {
+      method: "POST",
+      headers: headers(token),
+      body: JSON.stringify(body)
+    }),
+  stopRunSession: (token: string, projectId: string, body: { sessionId: string }) =>
+    request<{ ok: boolean; output: string; status: string }>(`/api/projects/${projectId}/terminal/stop`, {
+      method: "POST",
+      headers: headers(token),
+      body: JSON.stringify(body)
+    }),
+  aiChat: (
+    token: string,
+    body: {
+      message: string;
+      projectId?: string;
+      activeFilePath?: string;
+      activeFileContent?: string;
+      language?: string;
+      intent?: string;
+    },
+    signal?: AbortSignal
+  ) =>
+    request<{ ok: boolean; reply: string; model: string }>("/api/ai/chat", {
+      method: "POST",
+      headers: headers(token),
+      body: JSON.stringify(body),
+      signal
+    }),
+  aiSuggest: (
+    token: string,
+    body: {
+      projectId?: string;
+      activeFilePath?: string;
+      activeFileContent?: string;
+      language?: string;
+      prefix?: string;
+      suffix?: string;
+      lineNumber?: number;
+      column?: number;
+    },
+    signal?: AbortSignal
+  ) =>
+    request<{ ok: boolean; suggestion: string; model: string }>("/api/ai/suggest", {
+      method: "POST",
+      headers: headers(token),
+      body: JSON.stringify(body),
+      signal
     })
 };
